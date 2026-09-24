@@ -430,11 +430,11 @@ dialog::backdrop { background: rgba(10, 20, 14, .45); }
 
 .path { display: flex; flex-direction: column; gap: 22px; padding-top: 16px; }
 .unit { --hue: #1B7E45; }
-.unit:nth-child(6n+2) { --hue: #3E8FD6; }
-.unit:nth-child(6n+3) { --hue: #D9730D; }
-.unit:nth-child(6n+4) { --hue: #9B51E0; }
-.unit:nth-child(6n+5) { --hue: #D63B63; }
-.unit:nth-child(6n+6) { --hue: #0F9C8E; }
+.unit:nth-of-type(6n+2) { --hue: #3E8FD6; }
+.unit:nth-of-type(6n+3) { --hue: #D9730D; }
+.unit:nth-of-type(6n+4) { --hue: #9B51E0; }
+.unit:nth-of-type(6n+5) { --hue: #D63B63; }
+.unit:nth-of-type(6n+6) { --hue: #0F9C8E; }
 .unit-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 16px; border-radius: 18px; background: var(--hue); color: #fff; border-bottom: 5px solid color-mix(in srgb, var(--hue) 70%, #000); }
 .unit-n { font-size: .85rem; opacity: .9; font-weight: 600; }
 .unit-head h2 { margin: 0; font: 700 1.2rem/1.9 var(--ur); }
@@ -495,7 +495,7 @@ dialog::backdrop { background: rgba(10, 20, 14, .45); }
 .say.new { border-color: var(--green); }
 .q { margin: 0 0 6px; font: 400 1.12rem/2.3 var(--ur); }
 .intro { margin: 0 0 4px; font: 700 1.08rem/2.3 var(--ur); }
-.slot { margin-top: 12px; }
+.slot { margin-top: 12px; scroll-margin-top: 64px; scroll-margin-bottom: 104px; } /* clear of the sticky top bar and the fixed button bar */
 .slot .stage { border-radius: var(--radius); }
 .demo-note { margin: 10px 0 0; padding: 10px 14px; border-radius: 14px; background: var(--amber-bg); color: var(--amber-ink); font: 400 1rem/2.2 var(--ur); }
 
@@ -526,6 +526,44 @@ dialog::backdrop { background: rgba(10, 20, 14, .45); }
 .learned .speak { position: absolute; top: 10px; left: 10px; }
 .learned .recap { padding-inline-end: 0; margin-inline-end: 48px; }
 .next-line { font: 400 1rem/2.2 var(--ur); text-align: center; }
+
+/* Opening lesson: project cards and goals */
+.show-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
+.show-card { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 12px 8px; border-radius: 18px; border: 2px solid var(--line); border-bottom-width: 5px; background: var(--surface); text-align: center; }
+.show-card b { font: 700 1.05rem/1.9 var(--ur); }
+.show-card span:last-child { font-size: .82rem; line-height: 1.7; color: var(--ink-2); }
+.show-card.on { border-color: var(--green); background: var(--ok-bg); }
+.show-card:active { transform: translateY(3px); border-bottom-width: 2px; }
+.sc-ico { font-size: 2.2rem; line-height: 1.2; }
+.slot.no-scene .scene { display: none; }
+.slot.no-scene .wall-wrap { margin-top: 0; }
+.slot.no-scene .wall-box { max-width: min(400px, 50vh); max-width: min(400px, 50dvh); }
+.promise { margin: 12px 0 0; padding: 10px 14px; border-radius: 16px; background: var(--kite-soft); text-align: center; font: 700 1.05rem/2.2 var(--ur); animation: sayin .4s ease-out both; }
+.goal-opt { gap: 14px; }
+.goal-opt .sc-ico { font-size: 2rem; }
+.go-txt { display: flex; flex-direction: column; line-height: 1.7; }
+.go-txt b { font: 700 1.1rem/1.9 var(--ur); }
+.go-txt span { font-size: .85rem; color: var(--ink-2); }
+.goal-hero { position: relative; height: 170px; border-radius: 28px; background: linear-gradient(170deg, #FFF6C9, #FFE08A); display: grid; place-items: center; overflow: hidden; }
+.gh-ico { font-size: 5rem; animation: starpop .6s cubic-bezier(.3, 1.6, .5, 1) both; }
+
+/* Home: the goal card */
+.goal-card { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 20px; background: var(--surface); border: 2px solid var(--line); border-bottom-width: 5px; }
+.goal-card.won { background: var(--kite-soft); border-color: #E8C33A; }
+.goal-card.empty { border-style: dashed; border-bottom-width: 2px; }
+.goal-ico { flex: none; font-size: 2.3rem; line-height: 1; }
+.goal-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.6; }
+.goal-lbl { font-size: .8rem; color: var(--ink-2); font-weight: 600; }
+.goal-txt b { font: 700 1.1rem/1.9 var(--ur); }
+.goal-sub { font-size: .85rem; color: var(--ink-2); }
+.goal-bar { display: block; height: 10px; margin: 4px 0 2px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+.goal-bar i { display: block; height: 100%; border-radius: 999px; background: #FFC800; }
+.goal-btn { flex: none; min-height: 44px; padding: 0 14px; border-radius: 12px; border: 2px solid var(--line); background: var(--surface); font-weight: 700; color: var(--ink); }
+.node .goal-pin { position: absolute; top: -10px; left: -12px; font-size: 1.5rem; filter: drop-shadow(0 2px 2px rgba(0, 0, 0, .2)); }
+.node.goal .disc { box-shadow: 0 0 0 4px #FFC800; }
+.goal-note { display: flex; align-items: flex-start; gap: 10px; margin: 0 0 10px; padding: 10px 14px; border-radius: 16px; background: var(--info-bg); color: var(--info-ink); font-size: 1.6rem; }
+.goal-note p { margin: 0; font: 400 1rem/2.2 var(--ur); }
+.goal-note.won { background: var(--kite-soft); color: var(--ink); }
 
 /* ===================== Result panel ===================== */
 .result { position: fixed; bottom: 0; left: 0; right: 0; z-index: 20; max-width: 680px; margin: 0 auto; display: flex; flex-direction: column; max-height: 88vh; max-height: 88dvh; border-radius: 24px 24px 0 0; overflow: hidden; background: var(--surface); box-shadow: 0 -10px 40px rgba(0, 0, 0, .22); animation: rise .3s ease-out; }

@@ -12,7 +12,7 @@
   ];
 
   // ---------- state ----------
-  var S = { mod: 0, cur: 0, curBy: {}, lv: {}, sound: true, name: '', certName: '', streak: { day: '', n: 0 } };
+  var S = { mod: 0, cur: 0, curBy: {}, lv: {}, sound: true, name: '', certName: '', streak: { day: '', n: 0 }, goal: '', goalsDone: [] };
   try {
     var saved = JSON.parse(localStorage.getItem(KEY) || 'null');
     if (!saved) {
@@ -52,6 +52,17 @@
     S.streak = { day: t, n: S.streak.day === yesterday() ? S.streak.n + 1 : 1 };
   }
   function streakNow() { return S.streak.day === today() || S.streak.day === yesterday() ? S.streak.n : 0; }
+
+  // ---------- goal: what the child wants to make (a "make" level) ----------
+  function goalOf(id) { return (C.goals || []).filter(function (g) { return g.id === id; })[0] || null; }
+  function myGoal() { return goalOf(S.goal); }
+  function goalSteps(g) { var n = 0; for (var i = 0; i < g.mods; i++) if (modDone(i)) n++; return n; }
+  function goalReached(g) { return S.goalsDone.indexOf(g.id) >= 0; }
+  function levelById(id) {
+    for (var mi = 0; mi < MODS.length; mi++) for (var li = 0; li < MODS[mi].levels.length; li++)
+      if (MODS[mi].levels[li].id === id) return { mi: mi, li: li, L: MODS[mi].levels[li] };
+    return null;
+  }
 
   // ---------- helpers ----------
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
@@ -311,6 +322,30 @@
     renderKeys();
   }
 
+  // ================= OPENING LESSON "0" =================
+  // What JavaScript is → four real projects to try → pick a goal. Runs like a lesson, with its own steps.
+  var L0 = { id: '0', short: C.intro.title, title: C.intro.title, intro: true, learn: { say: C.intro.say }, task: {},
+    voice: { learn: C.intro.sayEn, showcase: C.intro.showEn, goal: C.intro.goalEn } };
+  var INTRO = { id: 'm0', number: 0, title: C.intro.title, stage: { draw: 'auto', boxes: false }, levels: [L0] };
+  function startIntro(atGoal) {
+    Narrator.stop(); forgetDiag();
+    M = INTRO; LV = INTRO.levels; S.cur = 0;
+    $('#app').dataset.draw = 'true';
+    var s = st();
+    s.at = atGoal ? 2 : 0; s.said = 0; s.tried = false; s.pick = null; s.set = false;
+    save();
+    if (!inLesson) history.pushState({ lesson: true }, '');
+    inLesson = true;
+    show('lesson');
+    renderStep();
+  }
+  // The code Birdy runs for each goal card: the real finished project from its level.
+  function goalDemo(g) {
+    var code = levelById(g.level).L.task.solution;
+    if (g.id === 'story' && S.name) code = code.replace('"Birdy"', JSON.stringify(S.name));
+    return code;
+  }
+
   // ================= FIRST VISIT =================
   // Three small screens: Birdy says hello, the child types a name, Birdy is happy.
   var onbBird = null;
@@ -330,8 +365,8 @@
     } else {
       h = '<div class="onb-hero"><div class="bird-spot hero" id="onb-bird"></div><div class="feathers" id="onb-feathers" aria-hidden="true"></div></div>' +
         '<div class="onb-body"><div class="chat"><p class="say big-say">آپ سے مل کر خوشی ہوئی، ' + nameHtml() + '! 🎉</p>' +
-        '<p class="say" style="--i:1">پہلا سبق بہت آسان ہے۔ چلیں شروع کریں!</p></div></div>' +
-        '<div class="onb-foot"><button type="button" class="big primary" id="onb-go">پہلا سبق شروع کریں</button></div>';
+        '<p class="say" style="--i:1">پہلے میں آپ کو دکھاتا ہوں کہ کوڈ سے کیا کیا بنتا ہے!</p></div></div>' +
+        '<div class="onb-foot"><button type="button" class="big primary" id="onb-go">چلیں، دکھاؤ!</button></div>';
     }
     el.innerHTML = h;
     onbBird = Mithu($('#onb-bird'));
@@ -361,10 +396,7 @@
       onbBird.mood('happy', 2400);
       feathers($('#onb-feathers'));
       Narrator.withName(S.name + '!', C.metEn, onbBird);
-      $('#onb-go').onclick = function () {
-        var n = nextUp() || { mi: 0, li: 0 };
-        startLevel(n.mi, n.li);
-      };
+      $('#onb-go').onclick = function () { startIntro(false); };
     }
   }
 
@@ -380,7 +412,18 @@
     $('#stat-stars').setAttribute('aria-label', starsTotal() + ' ستارے');
     var up = nextUp();
     var OFF = [0, 1, 2, 1, 0, -1, -2, -1]; // zig-zag
-    var h = '';
+    var h = '', g = myGoal();
+    if (g) {
+      var gs = goalSteps(g), won = goalReached(g);
+      h += '<div class="goal-card' + (won ? ' won' : '') + '"><span class="goal-ico" aria-hidden="true">' + g.icon + '</span>' +
+        '<div class="goal-txt"><span class="goal-lbl">میرا ہدف</span><b>' + esc(g.name) + '</b>' +
+        (won ? '<span class="goal-sub">پورا ہو گیا! 🏆</span>'
+          : '<span class="goal-bar" role="progressbar" aria-label="ہدف تک" aria-valuemin="0" aria-valuemax="' + g.mods + '" aria-valuenow="' + gs + '"><i style="width:' + Math.round(gs / g.mods * 100) + '%"></i></span><span class="goal-sub">' + g.mods + ' میں سے ' + gs + ' ماڈیول مکمل</span>') +
+        '</div><button type="button" class="goal-btn" data-goal>' + (won ? 'نیا ہدف' : 'بدلیں') + '</button></div>';
+    } else {
+      h += '<div class="goal-card empty"><span class="goal-ico" aria-hidden="true">✨</span><div class="goal-txt"><b>اپنا ہدف چنیں</b><span class="goal-sub">دیکھیں کوڈ سے کیا کیا بنتا ہے</span></div>' +
+        '<button type="button" class="goal-btn" data-intro>دیکھیں</button></div>';
+    }
     MODS.forEach(function (m, mi) {
       var open = modOpen(mi), done = modDone(mi);
       h += '<section class="unit' + (open ? '' : ' locked') + (done ? ' done' : '') + '" data-u="' + mi + '" style="--u:' + mi + '">' +
@@ -389,7 +432,8 @@
         '<ol class="nodes">';
       m.levels.forEach(function (L, li) {
         var isUp = up && up.mi === mi && up.li === li, lo = levelOpen(mi, li), d = lvDone(L), s = S.lv[L.id] || {};
-        var cls = 'node' + (d ? ' done' : '') + (isUp ? ' up' : '') + (lo ? '' : ' locked') + (L.make ? ' make' : '');
+        var isGoal = g && g.level === L.id;
+        var cls = 'node' + (d ? ' done' : '') + (isUp ? ' up' : '') + (lo ? '' : ' locked') + (L.make ? ' make' : '') + (isGoal ? ' goal' : '');
         var inner = d ? CHECK_ICON : lo ? (L.make ? '✨' : PLAY_ICON) : LOCK_ICON;
         var stars = d ? '<span class="nstars" aria-hidden="true">' + [1, 2, 3].map(function (k) { return '<i' + (k <= (s.stars || 0) ? ' class="on"' : '') + '>★</i>'; }).join('') + '</span>' : '';
         var started = isUp && (s.at || 0) > 0;
@@ -397,8 +441,8 @@
           (isUp ? '<span class="start-tip" aria-hidden="true">' + (started ? 'جاری رکھیں' : 'شروع') + '</span>' : '') +
           '<button type="button" class="' + cls + '" data-mi="' + mi + '" data-li="' + li + '"' + (lo ? '' : ' disabled') +
           ' aria-label="لیول ' + L.id + '، ' + esc(L.title) + (d ? '، مکمل' : lo ? '' : '، بند') + '"' + (isUp ? ' aria-current="step"' : '') + '>' +
-          '<span class="disc">' + inner + '</span></button>' + stars +
-          '<span class="nlbl">' + esc(L.short) + '</span></li>';
+          '<span class="disc">' + inner + '</span>' + (isGoal ? '<span class="goal-pin" aria-hidden="true">🏆</span>' : '') + '</button>' + stars +
+          '<span class="nlbl">' + (isGoal ? 'میرا ہدف: ' : '') + esc(L.short) + '</span></li>';
       });
       h += '</ol>';
       if (done) h += '<div class="unit-badge"><span class="medal"><span class="bird-spot"></span></span><span><b>' + esc(m.badge.name) + '</b></span></div>';
@@ -432,6 +476,8 @@
   $('#path').addEventListener('click', function (e) {
     var g = e.target.closest('[data-guide]');
     if (g) { openGuide(+g.dataset.guide, 'lesson'); return; }
+    if (e.target.closest('[data-goal]')) { startIntro(true); return; }
+    if (e.target.closest('[data-intro]')) { startIntro(false); return; }
     if (e.target.closest('[data-cert]')) { openCertificate(); return; }
     var n = e.target.closest('.node[data-mi]'); if (!n || n.disabled) return;
     startLevel(+n.dataset.mi, +n.dataset.li);
@@ -451,6 +497,7 @@
   // ================= LESSON =================
   // Steps: teach (sentences one by one) → show (Birdy runs the example) → guess → puzzle → code → done.
   function stepsFor(L) {
+    if (L.intro) return ['teach', 'showcase', 'goal'];
     var a = ['teach', 'show'];
     if (L.guess) a.push('guess');
     var P = L.task.parsons;
@@ -545,7 +592,7 @@
     body.scrollTop = 0; window.scrollTo(0, 0);
 
     if (k === 'teach') {
-      h = '<p class="lvl-chip">لیول ' + L.id + ' · ' + esc(L.title) + '</p>' +
+      h = '<p class="lvl-chip">' + (L.intro ? '' : 'لیول ' + L.id + ' · ') + esc(L.title) + '</p>' +
         '<div class="teach-row"><div class="bird-spot talker" id="talker"></div><div class="chat" id="chat">' +
         L.learn.say.slice(0, s.said + 1).map(function (t, i) { return '<p class="say' + (i === s.said ? ' new' : '') + '">' + rich(t) + '</p>'; }).join('') +
         '</div>' + speakBtn('teach') + '</div>';
@@ -555,6 +602,29 @@
       foot('<button type="button" class="big primary" data-act="more">آگے</button>');
       teachBird = talker;
       if (!quiet && s.said === 0) teachAlong(L, talker);
+    } else if (k === 'showcase') {
+      h = head(C.intro.showTitle, 'showcase') + '<p class="q">' + C.intro.showHelp + '</p><div class="show-cards">' +
+        C.goals.map(function (g) {
+          return '<button type="button" class="show-card" data-demo="' + g.id + '"><span class="sc-ico" aria-hidden="true">' + g.icon + '</span><b>' + esc(g.name) + '</b><span>' + esc(g.blurb) + '</span></button>';
+        }).join('') + '</div><div class="slot" id="slot-stage"></div>' +
+        '<p class="promise" id="promise"' + (s.tried ? '' : ' hidden') + '>' + C.intro.promise + '</p>';
+      body.innerHTML = h;
+      place('#stage', $('#slot-stage'));
+      $('#slot-stage').hidden = true;
+      foot('<button type="button" class="big primary" data-act="next"' + (s.tried ? '' : ' disabled') + '>آگے</button>');
+      if (!quiet) Narrator.say(narration('showcase'));
+    } else if (k === 'goal') {
+      if (s.set && myGoal()) renderGoalSet();
+      else {
+        h = head(C.intro.goalTitle, 'goal') + '<div class="opts goal-opts" role="radiogroup" aria-label="ہدف">' + C.goals.map(function (g) {
+          var won = goalReached(g);
+          return '<button type="button" role="radio" class="opt goal-opt" data-g="' + g.id + '" aria-checked="' + (s.pick === g.id) + '"><span class="sc-ico" aria-hidden="true">' + g.icon + '</span>' +
+            '<span class="go-txt"><b>' + esc(g.name) + (won ? ' ✓' : '') + '</b><span>' + (won ? 'بنا چکے ہیں' : g.mods + ' ماڈیول کے بعد') + '</span></span></button>';
+        }).join('') + '</div>';
+        body.innerHTML = h;
+        foot('<button type="button" class="big primary" data-act="setgoal"' + (s.pick ? '' : ' disabled') + '>یہ میرا ہدف ہے!</button>');
+        if (!quiet) Narrator.say(narration('goal'));
+      }
     } else if (k === 'show') {
       h = head('دیکھیں، برڈی کیسے کرتا ہے') + (L.learn.parts ? anatomy(L.learn.parts) : codeBlock(L.learn.example, L.learn.flow)) +
         '<div class="slot" id="slot-stage"></div><p class="demo-note" id="demo-note" hidden></p>';
@@ -644,12 +714,27 @@
       '<button type="button" class="big primary" data-act="run" id="run-btn">' + PLAY_ICON + ' چلاؤ</button>');
   }
 
+  // After picking: what the goal is and how far it is.
+  function renderGoalSet() {
+    var g = myGoal(), started = Object.keys(S.lv).some(function (k) { return k !== '0' && S.lv[k].done; });
+    $('#ls-body').innerHTML = '<div class="goal-hero"><span class="gh-ico" aria-hidden="true">' + g.icon + '</span><div class="feathers" id="goal-feathers" aria-hidden="true"></div></div>' +
+      '<h1 id="step-title" tabindex="-1" class="done-title">زبردست انتخاب، ' + nameHtml() + '!</h1>' +
+      '<div class="learned"><p class="learned-lbl">آپ کا ہدف:</p><p class="recap"><b>' + g.icon + ' ' + esc(g.name) + '</b>: ' + esc(g.blurb) + '۔</p>' +
+      '<p class="recap">اس تک پہنچنے کے لیے ' + g.mods + ' ماڈیول مکمل کریں۔ ہر ماڈیول آپ کو ایک نئی طاقت دے گا!</p></div>';
+    feathers($('#goal-feathers'));
+    foot('<button type="button" class="big primary" data-act="golevel">' + (started ? 'جاری رکھیں' : 'پہلا سبق شروع کریں') + '</button>');
+  }
+
   function renderDone(L, s) {
     var isLast = S.cur === LV.length - 1, nextMod = isLast && MODS[S.mod + 1];
-    var stars = s.stars || 3;
+    var stars = s.stars || 3, g = myGoal(), reached = false, goalLine = '';
+    if (g && g.level === L.id && s.done && !goalReached(g)) { S.goalsDone.push(g.id); save(); reached = true; }
+    if (reached) goalLine = '<div class="goal-note won"><span aria-hidden="true">🏆</span><p><b>ہدف پورا ہو گیا!</b> ' + esc(g.won) + '</p></div>';
+    else if (g && isLast && !goalReached(g) && M.number <= g.mods) goalLine = '<div class="goal-note"><span aria-hidden="true">' + g.icon + '</span><p><b>ہدف کی طرف ایک قدم!</b> ' + C.skills[M.number] + ' (' + g.mods + ' میں سے ' + goalSteps(g) + ')</p></div>';
     var h = '<div class="done-hero"><div class="bird-spot hero" id="done-bird"></div><div class="feathers" id="done-feathers" aria-hidden="true"></div></div>' +
-      '<h1 id="step-title" tabindex="-1" class="done-title">' + (isLast ? (nextMod ? 'ماڈیول مکمل! 🏆' : 'کورس مکمل! 🏆') : 'شاباش، ' + nameHtml() + '!') + '</h1>' +
+      '<h1 id="step-title" tabindex="-1" class="done-title">' + (reached ? 'ہدف پورا! 🏆' : isLast ? (nextMod ? 'ماڈیول مکمل! 🏆' : 'کورس مکمل! 🏆') : 'شاباش، ' + nameHtml() + '!') + '</h1>' +
       '<div class="big-stars" aria-label="' + stars + ' ستارے">' + [1, 2, 3].map(function (k) { return '<span class="' + (k <= stars ? 'on' : '') + '" style="--i:' + k + '">★</span>'; }).join('') + '</div>' +
+      goalLine +
       '<div class="learned"><p class="learned-lbl">آج آپ نے سیکھا:</p><p class="recap">' + rich(L.recap) + '</p>' + speakBtn('done') + '</div>' +
       (isLast ? badgeHtml(M) + (M.next ? '<p class="next-line">' + M.next + '</p>' : '') : '');
     $('#ls-body').innerHTML = h;
@@ -659,7 +744,9 @@
     $$('#ls-body .medal .bird-spot').forEach(function (el) { Mithu(el); });
     foot(isLast && !nextMod
       ? '<button type="button" class="big primary" data-act="cert">🎓 میری سند</button>'
+      : reached ? '<button type="button" class="big ghost" data-act="home">بعد میں</button><button type="button" class="big primary" data-act="newgoal">اگلا ہدف چنیں</button>'
       : '<button type="button" class="big primary" data-act="home">جاری رکھیں</button>');
+    if (reached) { db.mood('happy', 4000); }
     Narrator.withName('Well done, ' + S.name + '!', narration('done'), db);
   }
 
@@ -670,6 +757,30 @@
     if (sp) {
       if (sp.dataset.speak === 'teach') teachAlong(L, teachBird, true);
       else Narrator.say(narration(sp.dataset.speak), bird, true);
+      return;
+    }
+    var dc = e.target.closest('[data-demo]');
+    if (dc) {
+      if (busy) return;
+      $$('.show-card').forEach(function (b) { b.classList.toggle('on', b === dc); });
+      var slot = $('#slot-stage'), pic = dc.dataset.demo === 'drawing' || dc.dataset.demo === 'game';
+      slot.hidden = false;
+      slot.classList.toggle('no-scene', pic); // a picture or a game needs the room more than Birdy's sky
+      Stage.size();
+      if (!pic) slot.scrollIntoView({ block: 'start', behavior: motion() }); // a picture or game scrolls in when its wall appears (showWall)
+      demo(goalDemo(goalOf(dc.dataset.demo)), true).then(function (ok) {
+        if (!ok || stepKind() !== 'showcase') return;
+        s.tried = true; save();
+        $('#promise').hidden = false;
+        var nb = $('#ls-foot [data-act=next]'); if (nb) nb.disabled = false;
+      });
+      return;
+    }
+    var go = e.target.closest('.goal-opt');
+    if (go) {
+      s.pick = go.dataset.g; save();
+      $$('.goal-opt').forEach(function (b) { b.setAttribute('aria-checked', b === go); });
+      $('#ls-foot [data-act=setgoal]').disabled = false;
       return;
     }
     var o = e.target.closest('.opt');
@@ -699,6 +810,17 @@
       var up = nextUp();
       goHome({ title: 'شاباش، ' + nameHtml() + '! 🎉', sub: up ? 'اگلا لیول کھل گیا ہے۔' : 'آپ نے سارا کورس مکمل کر لیا!', mood: 'happy' });
     } else if (act === 'cert') openCertificate();
+    else if (act === 'setgoal') {
+      S.goal = s.pick; s.set = true; save();
+      renderGoalSet();
+      Narrator.say(C.intro.setEn);
+    } else if (act === 'golevel') {
+      s.done = true; save();
+      var anyDone = Object.keys(S.lv).some(function (k) { return k !== '0' && S.lv[k].done; });
+      var n = nextUp();
+      if (!anyDone && n) startLevel(n.mi, n.li);
+      else goHome({ title: 'آپ کا ہدف: ' + myGoal().icon + ' ' + esc(myGoal().name), sub: 'آئیں، جاری رکھیں۔', mood: 'happy' });
+    } else if (act === 'newgoal') startIntro(true);
   });
   $('#ls-book').onclick = function () { openGuide(S.mod, 'commands'); };
 
@@ -843,7 +965,11 @@
     }
     if (!nOut) $('#bubble').hidden = true;
   }
-  function showWall() { if ((M.stage || {}).draw && $('#wall-wrap').hidden) { $('#wall-wrap').hidden = false; Stage.size(); } }
+  function showWall() {
+    if (!(M.stage || {}).draw || !$('#wall-wrap').hidden) return;
+    $('#wall-wrap').hidden = false; Stage.size();
+    if (stepKind() === 'showcase') $('#slot-stage').scrollIntoView({ block: 'start' }); // instant: a second scroll would cancel a smooth one
+  }
   function applyNow(events) {
     events.forEach(function (e) {
       if (e.t === 'shape' || e.t === 'bg' || e.t === 'kite') showWall();
@@ -872,6 +998,7 @@
       $$('#pad button').forEach(function (b) { b.disabled = u.keys.indexOf(b.dataset.key) < 0; });
       $('#wall-wrap').classList.toggle('tappable', u.click);
       $('#result').classList.add('is-live'); Stage.size();
+      if (stepKind() === 'showcase') $('#slot-stage').scrollIntoView({ block: 'end' }); // board + arrows in view
       if (u.keys.length && document.activeElement === ta) ta.blur();
       var first = null, sync = true;
       session.onBatch(function (events, err) {
