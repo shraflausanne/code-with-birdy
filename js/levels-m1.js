@@ -56,15 +56,15 @@
           intro: 'اب برڈی سے <strong>اپنا نام</strong> بلوائیں۔',
           steps: [
             'تختی پر لفظ `Salaam` مٹائیں۔',
-            'اس کی جگہ اپنا نام انگریزی میں لکھیں، جیسے `Ali`۔',
+            'اس کی جگہ اپنا نام لکھیں: `{name}`۔',
             '«چلاؤ» دبائیں۔'
           ],
           starter: 'say("Salaam")',
           hints: [
             'صرف دونوں `"` کے بیچ والا لفظ بدلنا ہے۔ نشان نہ مٹائیں۔',
-            'ایسے لکھیں: `say("Ali")`، مگر `Ali` کی جگہ اپنا نام۔'
+            'ایسے لکھیں: `say("{name}")`'
           ],
-          solution: 'say("Ali")',
+          solution: 'say("{name}")',
           solutionNote: '`" "` کے اندر `Salaam` کی جگہ نام لکھا گیا ہے۔',
           check: function (out, code) {
             if (!out.length) return silent(code);
@@ -179,17 +179,17 @@
             wrong: 'برڈی نے اسی ترتیب میں بولا جس میں آپ نے لائنیں لگائیں۔ کیا سلام سب سے اوپر ہے؟',
             done: 'زبردست ترتیب! اب ایک آخری کام۔'
           },
-          intro: 'اب برڈی سے آپ کو <strong>آپ کے نام</strong> سے سلام کروائیں۔',
+          intro: 'اوپر کی لائنوں میں برڈی اپنا تعارف کرا رہا ہے، انہیں نہ بدلیں۔ اب برڈی سے آپ کو <strong>آپ کے نام</strong> سے سلام کروائیں۔',
           steps: [
             '`Khuda Hafiz` والی لائن سے پہلے ایک نئی لائن بنائیں۔',
-            'لکھیں: `say("Salaam, Ali!")`، مگر `Ali` کی جگہ اپنا نام۔',
+            'لکھیں: `say("Salaam, {name}!")`',
             '«چلاؤ» دبائیں۔'
           ],
           hints: [
             'ملتے وقت پہلے سلام کرتے ہیں، جاتے وقت خدا حافظ۔ نئی لائن ان کے بیچ میں ہو۔',
-            'نئی لائن `say("Khuda Hafiz!")` سے بالکل اوپر لکھیں: `say("Salaam, Ali!")`'
+            'نئی لائن `say("Khuda Hafiz!")` سے بالکل اوپر لکھیں: `say("Salaam, {name}!")`'
           ],
-          solution: 'say("Assalam o Alaikum")\nsay("My name is Birdy")\nsay("I am 3 years old")\nsay("Salaam, Ali!")\nsay("Khuda Hafiz!")',
+          solution: 'say("Assalam o Alaikum")\nsay("My name is Birdy")\nsay("I am 3 years old")\nsay("Salaam, {name}!")\nsay("Khuda Hafiz!")',
           solutionNote: 'پہلے سلام، آخر میں خدا حافظ، اور نئی لائن ان کے بیچ میں۔',
           check: function (out) {
             if (!out.length || !/assalam/i.test(text(out[0]))) return { msg: 'برڈی کو سب سے پہلے سلام کرنا ہے۔ `Assalam o Alaikum` والی لائن سب سے اوپر رکھیں۔' };

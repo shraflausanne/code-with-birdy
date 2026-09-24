@@ -56,7 +56,9 @@
   // ---------- helpers ----------
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   // The left-to-right mark keeps a chip that is only a symbol, like `(` or `<`, from being mirrored inside Urdu text.
-  function rich(s) { return String(s).replace(/`([^`]+)`/g, function (m, c) { return '<code dir="ltr">‎' + esc(c) + '</code>'; }); }
+  // {name} in level text (steps, hints, solutions) becomes the child's own name.
+  function you(s) { return String(s).replace(/\{name\}/g, S.name || 'Ali'); }
+  function rich(s) { return you(s).replace(/`([^`]+)`/g, function (m, c) { return '<code dir="ltr">‎' + esc(c) + '</code>'; }); }
   function isLatin(s) { return /^[\x00-\x7F…]+$/.test(s); }
   function nameHtml() { return '<bdi dir="ltr" class="kid">' + esc(S.name) + '</bdi>'; }
   function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
@@ -1094,13 +1096,13 @@
     var L = LV[S.cur];
     openSheet({
       title: 'حل', speak: L.voice && L.voice.solution,
-      body: '<p>' + rich(L.task.solutionNote) + '</p><pre dir="ltr">' + esc(L.task.solution) + '</pre>',
+      body: '<p>' + rich(L.task.solutionNote) + '</p><pre dir="ltr">' + esc(you(L.task.solution)) + '</pre>',
       actions: [
         { label: 'یہ کوڈ لگائیں اور چلائیں', cls: 'primary', onClick: function () {
           var s = st(), P = pz(L);
           s.sol = true;
           if (P && inParsonsStep()) s.order = P.order.slice();
-          else s.code = L.task.solution;
+          else s.code = you(L.task.solution);
           save();
           sheet.close();
           renderStep(true);
