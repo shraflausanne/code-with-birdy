@@ -82,8 +82,10 @@
   // ---------- narrator: recorded Kokoro voice (audio/), else the device's own English voice ----------
   var Narrator = (function () {
     var synth = window.speechSynthesis, voice = null, talking = null, left = 0, round = 0;
-    var files = null, audio = new Audio();
+    var files = null, audio = new Audio(), prog = null; // prog(fraction 0..1): how far the current line has been spoken
     audio.addEventListener('playing', function () { if (talking) talking.talk(true); });
+    audio.addEventListener('timeupdate', function () { if (prog && audio.duration) prog(audio.currentTime / audio.duration); });
+    audio.addEventListener('ended', function () { if (prog) { var p = prog; prog = null; p(1); } });
     ['pause', 'ended', 'error'].forEach(function (ev) { audio.addEventListener(ev, function () { if (talking) talking.talk(false); }); });
     fetch('audio/manifest.json').then(function (r) { return r.ok ? r.json() : null; }).then(function (m) {
       if (m && m.ids) { files = {}; m.ids.forEach(function (id) { files[id] = true; }); refresh(); }
@@ -131,28 +133,38 @@
     }
     function stop() {
       round++;
+      prog = null;
       audio.pause();
       if (synth) synth.cancel();
       left = 0;
       if (talking) talking.talk(false);
     }
     // force: the child pressed a speaker button, so speak even when sound is switched off.
-    function say(text, who, force) {
+    // onProgress (optional) hears how far the line has got, so text on screen can keep pace with the voice.
+    // Returns false when nothing will be spoken (sound off, no voice).
+    function say(text, who, force, onProgress) {
       stop();
-      if (!ready() || (!S.sound && !force) || !text) return;
+      if (!ready() || (!S.sound && !force) || !text) return false;
       talking = who || bird;
       var id = voiceId(String(text));
-      if (files && files[id]) { audio.src = 'audio/' + id + '.mp4'; audio.play().catch(function () {}); return; }
-      if (!voice) return;
-      var parts = String(text).match(/[^.!?]+[.!?]*/g) || [text], run = ++round;
+      if (files && files[id]) {
+        prog = onProgress || null;
+        audio.src = 'audio/' + id + '.mp4';
+        audio.play().catch(function () { if (prog) { var p = prog; prog = null; p(1); } });
+        return true;
+      }
+      if (!voice) return false;
+      var parts = String(text).match(/[^.!?]+[.!?]*/g) || [text], run = ++round, total = String(text).length, done = 0;
       left = parts.length;
       parts.forEach(function (p) {
-        var u = new SpeechSynthesisUtterance(p.trim());
+        var u = new SpeechSynthesisUtterance(p.trim()), from = done;
+        done += p.length;
         u.voice = voice; u.lang = voice.lang; u.rate = .78; u.pitch = 1.08;
-        u.onstart = function () { if (run === round) talking.talk(true); };
-        u.onend = u.onerror = function () { if (run === round && --left <= 0) talking.talk(false); };
+        u.onstart = function () { if (run === round) { talking.talk(true); if (onProgress) onProgress(from / total); } };
+        u.onend = u.onerror = function () { if (run === round && --left <= 0) { talking.talk(false); if (onProgress) onProgress(1); } };
         synth.speak(u);
       });
+      return true;
     }
     // The child's name is never in the recordings: the device's own voice says it first (it sounds different, on purpose),
     // then Birdy's recorded line follows. Without a device voice, only the recording plays.
@@ -539,8 +551,8 @@
       var talker = Mithu($('#talker'));
       talker.mood('wave', 1600);
       foot('<button type="button" class="big primary" data-act="more">آگے</button>');
-      if (!quiet && s.said === 0) Narrator.say(narration('teach'), talker);
       teachBird = talker;
+      if (!quiet && s.said === 0) teachAlong(L, talker);
     } else if (k === 'show') {
       h = head('دیکھیں، برڈی کیسے کرتا ہے') + (L.learn.parts ? anatomy(L.learn.parts) : codeBlock(L.learn.example, L.learn.flow)) +
         '<div class="slot" id="slot-stage"></div><p class="demo-note" id="demo-note" hidden></p>';
@@ -586,6 +598,33 @@
   }
   var teachBird = null;
 
+  // While Birdy reads the lesson aloud, each Urdu bubble appears when the voice reaches it.
+  // The English and Urdu sentences do not match one to one, so the timing follows the share of the Urdu text:
+  // bubble i appears once the voice has covered the text before it (a little early rather than late).
+  function teachAlong(L, talker, force) {
+    var says = L.learn.say, total = 0, starts = [];
+    says.forEach(function (t) { starts.push(total); total += t.length; });
+    Narrator.say(narration('teach'), talker, force, function (f) {
+      if (stepKind() !== 'teach' || LV[S.cur] !== L) return;
+      var want = 0;
+      starts.forEach(function (st0, i) { if (f >= st0 / total - 0.04) want = i; });
+      if (f >= 1) want = says.length - 1;
+      while (st().said < want) revealNext(L);
+    });
+  }
+  function revealNext(L) {
+    var s = st();
+    if (s.said >= L.learn.say.length - 1) return false;
+    s.said++; save();
+    var p = document.createElement('p');
+    p.className = 'say new'; p.innerHTML = rich(L.learn.say[s.said]);
+    $$('#chat .say').forEach(function (x) { x.classList.remove('new'); });
+    $('#chat').appendChild(p);
+    p.scrollIntoView({ block: 'nearest', behavior: motion() });
+    setBar();
+    return true;
+  }
+
   function renderShowFoot() {
     var s = st();
     foot(s.shown
@@ -626,7 +665,11 @@
   $('#scr-lesson').addEventListener('click', function (e) {
     var L = LV[S.cur], s = st();
     var sp = e.target.closest('[data-speak]');
-    if (sp) { Narrator.say(narration(sp.dataset.speak), sp.dataset.speak === 'teach' ? teachBird : bird, true); return; }
+    if (sp) {
+      if (sp.dataset.speak === 'teach') teachAlong(L, teachBird, true);
+      else Narrator.say(narration(sp.dataset.speak), bird, true);
+      return;
+    }
     var o = e.target.closest('.opt');
     if (o && !s.revealed) {
       s.guess = +o.dataset.o; save();
@@ -637,16 +680,7 @@
     var a = e.target.closest('[data-act]'); if (!a || a.disabled) return;
     var act = a.dataset.act;
     if (act === 'more') {
-      if (s.said < L.learn.say.length - 1) {
-        s.said++; save();
-        var p = document.createElement('p');
-        p.className = 'say new'; p.innerHTML = rich(L.learn.say[s.said]);
-        $$('#chat .say').forEach(function (x) { x.classList.remove('new'); });
-        $('#chat').appendChild(p);
-        p.scrollIntoView({ block: 'nearest', behavior: motion() });
-        if (teachBird) teachBird.mood('idle');
-        setBar();
-      } else next();
+      if (!revealNext(L)) next(); // the child can move ahead of the voice
     } else if (act === 'next') next();
     else if (act === 'demo') {
       a.disabled = true;
