@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="ur">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1F8A4C">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Birdy">
+<meta property="og:title" content="برڈی کے ساتھ کوڈ · Code with Birdy">
+<meta property="og:description" content="A free JavaScript course for children, in Urdu.">
+<meta property="og:image" content="icons/icon-512.png">
+<title>برڈی کے ساتھ کوڈ</title>
+<meta name="description" content="Code with Birdy: a JavaScript course for children, in Urdu.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700&family=JetBrains+Mono:wght@400;600&family=Noto+Naskh+Arabic:wght@400;600;700&family=Noto+Nastaliq+Urdu:wght@400;700&display=swap">
+<link rel="stylesheet" href="css/app.css">
+<style>html { height: 100%; } body { min-height: 100%; }</style>
+</head>
+<body>
+<div id="app" dir="rtl" lang="ur" data-screen="home">
+
+  <!-- First visit: hello, name, go -->
+  <section class="screen onb" id="scr-onb" aria-live="polite"></section>
+
+  <!-- Home: the path of levels -->
+  <section class="screen home" id="scr-home">
+    <header class="home-top">
+      <button type="button" class="me" id="me-btn" aria-label="میرا نام">
+        <span class="me-bird" id="me-bird"></span>
+        <span class="me-text"><b id="hello-title"></b><span id="hello-sub"></span></span>
+      </button>
+      <div class="stats">
+        <span class="stat streak" id="stat-streak" title="دن لگاتار"><span aria-hidden="true">🔥</span><b id="streak-n">0</b></span>
+        <span class="stat stars" id="stat-stars" title="ستارے"><span aria-hidden="true">⭐</span><b id="stars-n">0</b></span>
+        <button type="button" class="round sound-btn" aria-pressed="true" aria-label="آواز" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path class="on" d="M4 9v6h4l5 4V5L8 9H4zM16 8.5a5 5 0 010 7M18.5 6a8.5 8.5 0 010 12" /><path class="off" d="M4 9v6h4l5 4V5L8 9H4zM16 9l6 6M22 9l-6 6" /></svg>
+        </button>
+      </div>
+    </header>
+    <div class="path" id="path"></div>
+    <div class="home-foot">
+      <button type="button" class="big primary" id="continue-btn"></button>
+    </div>
+  </section>
+
+  <!-- A lesson: one small step at a time -->
+  <section class="screen lesson" id="scr-lesson" aria-labelledby="step-title">
+    <header class="ls-top">
+      <button type="button" class="round x" id="ls-close" aria-label="بند کریں">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+      </button>
+      <div class="bar" id="ls-bar" role="progressbar" aria-label="سبق میں کہاں تک پہنچے" aria-valuemin="0" aria-valuemax="100"><i></i></div>
+      <button type="button" class="round" id="ls-book" aria-label="حکموں کی کتاب" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5C6.5 4 9.5 4 12 6c2.5-2 5.5-2 8-.5V19c-2.5-1.5-5.5-1.5-8 .5-2.5-2-5.5-2-8-.5z M12 6v13.5" /></svg>
+      </button>
+      <button type="button" class="round sound-btn" aria-pressed="true" aria-label="آواز" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path class="on" d="M4 9v6h4l5 4V5L8 9H4zM16 8.5a5 5 0 010 7M18.5 6a8.5 8.5 0 010 12" /><path class="off" d="M4 9v6h4l5 4V5L8 9H4zM16 9l6 6M22 9l-6 6" /></svg>
+      </button>
+    </header>
+    <main class="ls-body" id="ls-body"></main>
+    <footer class="ls-foot" id="ls-foot"></footer>
+  </section>
+
+  <!-- Result panel: slides up after "check" or "run" -->
+  <div class="result" id="result" data-kind="run" role="region" aria-labelledby="res-title" hidden>
+    <div class="res-inner">
+      <div class="res-stage" id="res-stage"></div>
+      <div class="res-verdict" id="res-verdict" aria-live="polite">
+        <div class="res-head">
+          <span class="res-ico" id="res-ico" aria-hidden="true"></span>
+          <h2 id="res-title"></h2>
+        </div>
+        <p class="res-msg" id="res-msg"></p>
+        <ul class="tests" id="res-tests" hidden></ul>
+        <details class="raw" id="res-raw" hidden><summary>انگریزی میں دیکھیں</summary><code dir="ltr" id="res-raw-text"></code></details>
+      </div>
+    </div>
+    <div class="res-foot" id="res-foot" hidden></div>
+  </div>
+
+  <!-- Parked parts: moved into whichever step needs them -->
+  <div class="parking" id="parking" hidden>
+    <div class="stage" id="stage">
+      <div class="scene" id="scene">
+        <svg class="kites" viewBox="0 0 300 120" aria-hidden="true">
+          <g class="kite k1"><path d="M40 10 L58 34 L40 62 L22 34 Z" fill="#FFD84D"/><path d="M40 10 L40 62 M22 34 L58 34" stroke="#D9A400" stroke-width="1.5"/><path d="M40 62 q-6 14 4 24 q-8 10 2 22" stroke="#8B9C8F" stroke-width="1.2" fill="none"/></g>
+          <g class="kite k2"><path d="M230 20 L244 38 L230 58 L216 38 Z" fill="#D63B34"/><path d="M230 20 L230 58 M216 38 L244 38" stroke="#9E2621" stroke-width="1.2"/><path d="M230 58 q6 12 -3 20" stroke="#8B9C8F" stroke-width="1.2" fill="none"/></g>
+        </svg>
+        <div class="perch" aria-hidden="true"><i></i></div>
+        <div class="bird-spot" id="bird"></div>
+        <div class="bubble" id="bubble" aria-hidden="true" hidden><span id="bubble-text"></span></div>
+      </div>
+
+      <div class="wall-wrap" id="wall-wrap" hidden>
+        <div class="wall-box">
+          <canvas id="wall" width="400" height="400" role="img" aria-label="برڈی کی تصویر والی دیوار"></canvas>
+          <span class="coord" id="coord" dir="ltr" hidden></span>
+          <button type="button" class="grid-btn" id="grid-btn" aria-pressed="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h18v18H3zM9 3v18M15 3v18M3 9h18M3 15h18" /></svg>
+            <span>جالی</span>
+          </button>
+        </div>
+        <div class="livebar" id="livebar" hidden>
+          <span class="live-dot" aria-hidden="true"></span>
+          <span class="live-text" id="live-text">پروگرام چل رہا ہے</span>
+          <button type="button" class="live-stop" id="live-stop">روکیں</button>
+        </div>
+        <div class="pad" id="pad" dir="ltr" hidden aria-label="تیر والے بٹن">
+          <button type="button" data-key="ArrowUp" aria-label="اوپر">▲</button>
+          <button type="button" data-key="ArrowLeft" aria-label="بائیں">◀</button>
+          <button type="button" data-key="ArrowDown" aria-label="نیچے">▼</button>
+          <button type="button" data-key="ArrowRight" aria-label="دائیں">▶</button>
+        </div>
+      </div>
+
+      <form class="ask" id="ask" hidden>
+        <p class="ask-lbl">برڈی پوچھ رہا ہے:</p>
+        <p class="ask-q" id="ask-q" dir="ltr"></p>
+        <div class="ask-row">
+          <input id="ask-in" dir="ltr" autocomplete="off" autocapitalize="off" aria-labelledby="ask-q">
+          <button type="submit" class="btn primary">جواب دیں</button>
+        </div>
+        <p class="ask-hint" id="ask-hint"></p>
+      </form>
+
+      <div class="boxes" id="boxes" hidden>
+        <h3>برڈی کی یادداشت <span>(ڈبے)</span></h3>
+        <div class="box-list" id="box-list" dir="ltr"></div>
+      </div>
+
+      <div class="said" id="said-wrap" hidden>
+        <h3>برڈی نے کہا:</h3>
+        <ol id="said" dir="ltr"></ol>
+      </div>
+    </div>
+
+    <div class="slate" id="slate">
+      <div class="slate-head">
+        <span class="slate-title">کوڈ کی تختی</span>
+        <button type="button" class="reset" id="reset">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 108-8H7M7 1v6h6" transform="translate(0 1)" /></svg>
+          شروع سے
+        </button>
+      </div>
+      <div class="editor" id="editor" dir="ltr" lang="en">
+        <div class="gutter" id="gutter" aria-hidden="true"></div>
+        <div class="code-area">
+          <pre class="hl" id="hl" aria-hidden="true"></pre>
+          <label for="code" class="sr">کوڈ</label>
+          <textarea id="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" placeholder="یہاں کوڈ لکھیں…"></textarea>
+        </div>
+      </div>
+      <ol class="parsons" id="parsons" dir="ltr" hidden></ol>
+    </div>
+    <div class="keys" id="keys" dir="ltr" aria-label="نشانوں کی کنجیاں"></div>
+  </div>
+
+  <!-- Sheet: hints, solution, guidebook, name -->
+  <dialog class="sheet" id="sheet" aria-labelledby="sheet-title">
+    <div class="sheet-inner">
+      <div class="sheet-head">
+        <h2 id="sheet-title"></h2>
+        <button type="button" class="speak" id="sheet-speak" hidden aria-label="سنیں"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4zM16 8.5a5 5 0 010 7M18.5 6a8.5 8.5 0 010 12" /></svg></button>
+        <button type="button" class="x" data-close aria-label="بند کریں">×</button>
+      </div>
+      <div class="sheet-tabs" id="sheet-tabs" role="tablist" hidden></div>
+      <div class="sheet-body" id="sheet-body"></div>
+      <div class="sheet-foot" id="sheet-foot"></div>
+    </div>
+  </dialog>
+
+  <!-- Certificate -->
+  <dialog class="modal" id="modal" aria-labelledby="modal-title">
+    <div class="modal-hero" id="modal-hero"><div class="bird-spot big" id="modal-bird"></div><div class="feathers" id="feathers" aria-hidden="true"></div></div>
+    <div class="modal-body">
+      <h2 id="modal-title"></h2>
+      <div id="modal-text"></div>
+    </div>
+    <div class="modal-foot" id="modal-foot"></div>
+  </dialog>
+</div>
+
+<script src="js/course-text.js"></script>
+<script src="js/mithu.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/runner.js"></script>
+<script src="js/doctor.js"></script>
+<script src="js/stage.js"></script>
+<script src="js/levels-m1.js"></script>
+<script src="js/levels-m2.js"></script>
+<script src="js/levels-m3.js"></script>
+<script src="js/levels-m4.js"></script>
+<script src="js/levels-m5.js"></script>
+<script src="js/levels-m6.js"></script>
+<script src="js/app.js"></script>
+<script>
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
+}
+</script>
+</body>
+</html>

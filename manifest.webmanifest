@@ -1,0 +1,25 @@
+{
+  "name": "برڈی کے ساتھ کوڈ · Code with Birdy",
+  "short_name": "Birdy",
+  "description": "A free JavaScript course for children, in Urdu.",
+  "lang": "ur",
+  "dir": "rtl",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F4F8EF",
+  "theme_color": "#1F8A4C",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
