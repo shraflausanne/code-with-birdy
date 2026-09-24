@@ -718,6 +718,8 @@
         (right ? '' : 'صحیح جواب: <b>' + (isLatin(G.options[G.correct]) ? '<bdi dir="ltr">' + esc(G.options[G.correct]) + '</bdi>' : rich(G.options[G.correct])) + '</b><br>') + rich(G.why),
         [{ label: 'آگے', cls: 'primary', act: next }]);
       Narrator.say(L.voice && L.voice.why);
+      // A guess about broken code: Birdy's "I did not understand" must not sound like a reply to the child's answer.
+      if (demoFailed) bubble(right ? 'بالکل ٹھیک! اس کوڈ میں کمی ہے، اسی لیے میں سمجھ نہیں پایا۔' : 'اس کوڈ میں کمی ہے، اسی لیے میں سمجھ نہیں پایا۔', true);
       bird.mood(right ? 'happy' : 'think', 1800);
     });
   }
@@ -934,8 +936,9 @@
   }
 
   // Birdy shows an example (show and guess steps). An error here is part of the lesson.
-  var busy = false;
+  var busy = false, demoFailed = false; // demoFailed: the last example stopped with an error
   async function demo(code, inResult) {
+    demoFailed = false;
     if (busy) return false; busy = true;
     Narrator.stop(); Live.stop();
     clearStage();
@@ -946,6 +949,7 @@
       var x = await execute(code);
       if (x.cancelled) return false;
       if (x.diag) {
+        demoFailed = true;
         bubble('اوہو! میں سمجھ نہیں پایا…', true);
         bird.mood('sad', 2600);
         if (note && !inResult) { note.innerHTML = '<b>دیکھا؟</b> ' + rich(x.diag.msg); note.hidden = false; }
